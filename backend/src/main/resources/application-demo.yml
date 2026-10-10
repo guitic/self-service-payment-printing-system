@@ -1,0 +1,49 @@
+# ===== demo 档：零外部依赖，直接 mvn spring-boot:run 即可跑通全链路 =====
+# H2 内存库（MySQL 兼容模式）+ 内存任务队列 + 日志短信 + Mock 支付网关
+spring:
+  datasource:
+    url: jdbc:h2:mem:print;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/data.sql
+      continue-on-error: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+print:
+  queue:
+    type: memory
+  sms:
+    debug: true
+  payment:
+    gateway: mock
+    # demo 档显式开启模拟支付端点（生产必须为 false，ProdConfigValidator 会强制校验）
+    mock-enabled: true
+  admin:
+    # demo 档演示管理端：所有登录用户视为管理员（生产必须为 false）
+    allow-all: true
+  file:
+    root: ./data/uploads
+    converter: none
+
+# demo 档不使用 Redis，关闭其健康检查，避免误报 DOWN 与日志刷屏
+management:
+  health:
+    redis:
+      enabled: false
+
+logging:
+  level:
+    com.print: debug
+    io.lettuce: warn

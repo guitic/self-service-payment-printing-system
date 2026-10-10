@@ -1,0 +1,75 @@
+# ===== prod 档：按设计文档部署（MySQL 8 + Redis 7 + Nginx）=====
+spring:
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DB:print_db}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${MYSQL_USER:print}
+    password: ${MYSQL_PASSWORD:print123}
+    hikari:
+      maximum-pool-size: ${MYSQL_POOL_MAX:20}
+      minimum-idle: 2
+      connection-timeout: 10000
+  sql:
+    init:
+      mode: never          # 生产库表结构由 db/mysql/schema.sql 手工/流水线初始化
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 3000ms
+
+print:
+  queue:
+    type: redis
+  sms:
+    debug: false
+  payment:
+    # mock / wechat / alipay —— 切换真实渠道见 docs/payment-switch-guide.md
+    gateway: ${PAYMENT_GATEWAY:mock}
+    # 生产默认关闭模拟支付端点（开启即等于允许绕过支付免费出纸）
+    mock-enabled: ${PAYMENT_MOCK_ENABLED:false}
+    # ===== 微信支付（V3）——以下均为占位，默认空；未启用时网关 Bean 不注册 =====
+    wechat:
+      enabled: ${WECHAT_PAY_ENABLED:false}
+      app-id: ${WECHAT_APP_ID:}
+      mch-id: ${WECHAT_MCH_ID:}
+      api-v3-key: ${WECHAT_API_V3_KEY:}
+      # 商户 API 私钥文件路径（apiclient_key.pem，PKCS8）
+      private-key-path: ${WECHAT_PRIVATE_KEY_PATH:}
+      cert-serial-no: ${WECHAT_CERT_SERIAL_NO:}
+      # 微信支付平台证书路径（回调验签用）
+      platform-cert-path: ${WECHAT_PLATFORM_CERT_PATH:}
+      notify-url: ${WECHAT_NOTIFY_URL:}
+      api-base: ${WECHAT_API_BASE:https://api.mch.weixin.qq.com}
+    # ===== 支付宝（当面付）——以下均为占位，默认空；未启用时网关 Bean 不注册 =====
+    alipay:
+      enabled: ${ALIPAY_ENABLED:false}
+      app-id: ${ALIPAY_APP_ID:}
+      # 应用私钥（PKCS8，Base64；可带 PEM 头）
+      private-key: ${ALIPAY_PRIVATE_KEY:}
+      # 支付宝公钥（回调验签用）
+      alipay-public-key: ${ALIPAY_PUBLIC_KEY:}
+      notify-url: ${ALIPAY_NOTIFY_URL:}
+      gateway: ${ALIPAY_GATEWAY:https://openapi.alipay.com/gateway.do}
+      sandbox: ${ALIPAY_SANDBOX:false}
+  file:
+    root: ${FILE_ROOT:/data/uploads}
+    converter: ${FILE_CONVERTER:none}
+    libreoffice-path: ${LIBREOFFICE_PATH:soffice}
+    convert-timeout-seconds: ${FILE_CONVERT_TIMEOUT_SECONDS:60}
+  order:
+    pay-expire-minutes: ${ORDER_PAY_EXPIRE_MINUTES:15}
+  task:
+    claim-timeout-seconds: ${TASK_CLAIM_TIMEOUT_SECONDS:120}
+    max-retry: ${TASK_MAX_RETRY:3}
+  agent:
+    offline-seconds: ${AGENT_OFFLINE_SECONDS:90}
+  jwt:
+    # 生产必须注入；ProdConfigValidator 会在启动时拒绝默认/弱密钥
+    secret: ${JWT_SECRET:}
+    expire-minutes: ${JWT_EXPIRE_MINUTES:120}
+
+logging:
+  level:
+    com.print: info

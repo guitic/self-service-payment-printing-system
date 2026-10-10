@@ -1,0 +1,52 @@
+# ============================================================================
+#  自助付费打印系统 —— 本地依赖编排（MySQL 8 + Redis 7）
+#  用途：本地/联调环境起依赖。后端默认跑 demo 档（H2 内存）无需本文件；
+#        需要 MySQL/Redis 的 prod 档或集成测试时使用。
+#  启动：docker compose up -d
+#  停止：docker compose down        （保留数据卷）
+#  清库：docker compose down -v     （删除数据卷，慎用）
+# ============================================================================
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: print-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: print_db
+      MYSQL_USER: print
+      MYSQL_PASSWORD: print123
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: print-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql-data:
+  redis-data:

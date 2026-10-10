@@ -1,0 +1,72 @@
+server:
+  port: 8080
+  shutdown: graceful
+
+spring:
+  application:
+    name: print-backend
+  profiles:
+    active: demo
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 60MB
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    default-property-inclusion: non_null
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# ===== 业务配置（与设计文档第 2 章 §1.4 环境变量清单对齐）=====
+print:
+  file:
+    root: ./data/uploads
+    max-size-mb: 50
+    allowed-ext: doc,docx,xls,xlsx,pdf,png,jpg,jpeg,bmp,gif
+    # 转换器：none（Office 走体积估算降级）| libreoffice（转 PDF 取精确页数）
+    converter: none
+    libreoffice-path: soffice
+    convert-timeout-seconds: 60
+  order:
+    pay-expire-minutes: 15
+  task:
+    claim-timeout-seconds: 120
+    max-retry: 3
+    long-poll-seconds: 25
+  agent:
+    offline-seconds: 90
+  sms:
+    code-ttl-seconds: 300
+    send-cooldown-seconds: 60
+    debug: true
+  jwt:
+    secret: dev-only-secret-please-replace-with-32-bytes-min-key-0001
+    expire-minutes: 120
+  queue:
+    type: memory
+  payment:
+    gateway: mock
+
+logging:
+  level:
+    com.print: debug
+    org.springframework.security: warn

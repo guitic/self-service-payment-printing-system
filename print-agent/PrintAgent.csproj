@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>PrintAgent</RootNamespace>
+    <AssemblyName>PrintAgent</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <!-- 允许在 Windows 上编译（部署目标为 Windows 终端机 / Linux systemd） -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Worker SDK 已隐式引入 Hosting，这里显式声明以保证还原行为明确 -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>

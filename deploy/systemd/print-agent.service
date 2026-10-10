@@ -1,0 +1,31 @@
+[Unit]
+# 自助付费打印系统 —— 打印助手（.NET 8 Worker，Linux 终端）
+Description=Self-service Print Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# .NET Worker 通过 sd_notify 上报就绪（程序内置 SystemdNotifier，直接写 $NOTIFY_SOCKET）
+Type=notify
+User=printagent
+Group=printagent
+WorkingDirectory=/opt/print/agent
+# 密钥/参数外置，勿写死在 unit（权限 600）
+EnvironmentFile=/etc/print/agent.env
+ExecStart=/opt/print/agent/PrintAgent
+Restart=always
+RestartSec=10
+WatchdogSec=90
+LimitNOFILE=65535
+# 日志交 journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=print-agent
+
+[Install]
+WantedBy=multi-user.target
+
+# 说明：Windows 终端不使用本 unit，改为注册 Windows Service：
+#   sc create PrintAgent binPath= "C:\print-agent\PrintAgent.exe" start= auto
+#   并在「服务属性 → 恢复」中将「第一次/第二次/后续失败」均设为「重新启动服务」，
+#   重置计数 1 天，等价替代 WatchdogSec。

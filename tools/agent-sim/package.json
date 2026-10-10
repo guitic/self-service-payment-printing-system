@@ -1,0 +1,17 @@
+{
+  "name": "print-agent-sim",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "自助付费打印系统 - 打印助手本地仿真器（纯 Node.js 内置能力，无第三方依赖）",
+  "bin": {
+    "agent-sim": "agent-sim.mjs"
+  },
+  "scripts": {
+    "start": "node agent-sim.mjs",
+    "help": "node agent-sim.mjs --help"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

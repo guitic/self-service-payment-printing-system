@@ -1,0 +1,30 @@
+[Unit]
+# 自助付费打印系统 —— 后端服务（Spring Boot jar）
+Description=Self-service Print Backend
+After=network-online.target mysql.service redis.service
+Wants=network-online.target
+Requires=mysql.service redis.service
+
+[Service]
+Type=simple
+User=print
+Group=print
+WorkingDirectory=/opt/print/backend
+# 密钥外置，勿写死在 unit（权限 600，属主 print）
+EnvironmentFile=/etc/print/backend.env
+ExecStart=/usr/bin/java -Xms512m -Xmx1024m -XX:+UseG1GC \
+          -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/var/log/print/ \
+          -Dspring.profiles.active=prod \
+          -jar /opt/print/backend/app.jar
+SuccessExitStatus=143
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+LimitNOFILE=65535
+# 日志交 journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=print-backend
+
+[Install]
+WantedBy=multi-user.target
