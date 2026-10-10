@@ -97,13 +97,13 @@ async function main() {
   ok('上传 PDF 并解析页数 = 3', up?.code === 0 && up?.data?.pageCount === 3,
     `fileId=${fileId}, pageCount=${up?.data?.pageCount}`);
 
-  // 4. 试算：黑白 3 页 × 2 份 = 1.20（高于起印价 1.00）
+  // 4. 试算：黑白 3 页 × 2 份 = 1.20
   const quoteBody = { fileId, copies: 2, colorMode: 'MONO', duplexMode: 'SIMPLEX', paperSize: 'A4' };
   const quote = await api('POST', '/api/v1/pricing/quote', { token, body: quoteBody });
   ok('试算金额 = 1.20（3页×2份×0.20）', quote.json?.data?.amount === 1.2,
     `amount=${quote.json?.data?.amount}`);
 
-  // 4b. 双面折扣：3 页 × 3 份 × 0.20 × 0.9 = 1.62（高于起印价，验证折扣与精度）
+  // 4b. 双面折扣：3 页 × 3 份 × 0.20 × 0.9 = 1.62（验证折扣与精度）
   const quoteDuplex = await api('POST', '/api/v1/pricing/quote', {
     token,
     body: { ...quoteBody, copies: 3, duplexMode: 'DUPLEX' },
@@ -111,13 +111,21 @@ async function main() {
   ok('双面折扣金额 = 1.62（3页×3份×0.20×0.9）', Number(quoteDuplex.json?.data?.amount) === 1.62,
     `amount=${quoteDuplex.json?.data?.amount}`);
 
-  // 4c. 起印价生效：1 页 × 1 份 = 0.20 → 取起印价 1.00
-  const quoteMin = await api('POST', '/api/v1/pricing/quote', {
+  // 4c. 单页小额不托底：1 页 × 1 份 黑白 = 0.20（无起印价）
+  const quoteSingle = await api('POST', '/api/v1/pricing/quote', {
     token,
     body: { ...quoteBody, copies: 1, pageRange: { from: 1, to: 1 } },
   });
-  ok('起印价生效 = 1.00', Number(quoteMin.json?.data?.amount) === 1.0,
-    `amount=${quoteMin.json?.data?.amount}`);
+  ok('单页小额按实算 = 0.20', Number(quoteSingle.json?.data?.amount) === 0.2,
+    `amount=${quoteSingle.json?.data?.amount}`);
+
+  // 4d. 色彩区分：1 页 × 1 份 彩色 = 0.80（与黑白 0.20 不同）
+  const quoteColor = await api('POST', '/api/v1/pricing/quote', {
+    token,
+    body: { ...quoteBody, copies: 1, colorMode: 'COLOR', pageRange: { from: 1, to: 1 } },
+  });
+  ok('彩色单页 = 0.80（与黑白区分）', Number(quoteColor.json?.data?.amount) === 0.8,
+    `amount=${quoteColor.json?.data?.amount}`);
 
   // 5. 下单
   const order = await api('POST', '/api/v1/orders', {

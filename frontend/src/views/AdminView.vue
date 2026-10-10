@@ -35,7 +35,6 @@ const ruleForm = reactive<PriceRule>({
   colorPrice: 0.8,
   monoPrice: 0.2,
   duplexDiscount: 0.9,
-  minCharge: 1,
 })
 
 async function fetchRules() {
@@ -59,7 +58,6 @@ function openRuleDialog(row?: PriceRule) {
       colorPrice: 0.8,
       monoPrice: 0.2,
       duplexDiscount: 0.9,
-      minCharge: 1,
     })
   }
   ruleDialog.value = true
@@ -180,9 +178,6 @@ onMounted(() => {
             <el-table-column label="双面折扣" width="110">
               <template #default="{ row }">×{{ Number(row.duplexDiscount).toFixed(2) }}</template>
             </el-table-column>
-            <el-table-column label="起印价" width="110">
-              <template #default="{ row }">¥{{ formatAmount(row.minCharge) }}</template>
-            </el-table-column>
             <el-table-column label="操作" width="90" fixed="right">
               <template #default="{ row }">
                 <el-button type="primary" link @click="openRuleDialog(row)">编辑</el-button>
@@ -280,9 +275,6 @@ onMounted(() => {
         </el-form-item>
         <el-form-item label="双面折扣">
           <el-input-number v-model="ruleForm.duplexDiscount" :min="0" :max="1" :step="0.05" :precision="2" />
-        </el-form-item>
-        <el-form-item label="起印价">
-          <el-input-number v-model="ruleForm.minCharge" :min="0" :step="0.5" :precision="2" />
         </el-form-item>
       </el-form>
       <template #footer>

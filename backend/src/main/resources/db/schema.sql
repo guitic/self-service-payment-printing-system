@@ -38,7 +38,6 @@ CREATE TABLE IF NOT EXISTS t_price_rule (
     color_price     DECIMAL(10, 2) NOT NULL,
     mono_price      DECIMAL(10, 2) NOT NULL,
     duplex_discount DECIMAL(5, 2)  DEFAULT 1.00,
-    min_charge      DECIMAL(10, 2) DEFAULT 0.00,
     status          TINYINT      DEFAULT 1,
     created_at      DATETIME,
     updated_at      DATETIME,

@@ -38,7 +38,6 @@ CREATE TABLE IF NOT EXISTS t_price_rule (
     color_price     DECIMAL(10, 2) NOT NULL,
     mono_price      DECIMAL(10, 2) NOT NULL,
     duplex_discount DECIMAL(5, 2)  DEFAULT 1.00,
-    min_charge      DECIMAL(10, 2) DEFAULT 0.00,
     status          TINYINT        DEFAULT 1,
     created_at      DATETIME       DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME       DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -118,12 +117,12 @@ CREATE TABLE IF NOT EXISTS t_print_task (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT '打印任务';
 
 -- 生产种子：计价规则 + 终端（按需执行）
-INSERT INTO t_price_rule (merchant_id, name, paper_size, color_price, mono_price, duplex_discount, min_charge, status)
-SELECT 1, 'A4 标准', 'A4', 0.80, 0.20, 0.90, 1.00, 1
+INSERT INTO t_price_rule (merchant_id, name, paper_size, color_price, mono_price, duplex_discount, status)
+SELECT 1, 'A4 标准', 'A4', 0.80, 0.20, 0.90, 1
 WHERE NOT EXISTS (SELECT 1 FROM t_price_rule WHERE paper_size = 'A4');
 
-INSERT INTO t_price_rule (merchant_id, name, paper_size, color_price, mono_price, duplex_discount, min_charge, status)
-SELECT 1, 'A3 标准', 'A3', 1.60, 0.40, 0.90, 1.00, 1
+INSERT INTO t_price_rule (merchant_id, name, paper_size, color_price, mono_price, duplex_discount, status)
+SELECT 1, 'A3 标准', 'A3', 1.60, 0.40, 0.90, 1
 WHERE NOT EXISTS (SELECT 1 FROM t_price_rule WHERE paper_size = 'A3');
 
 INSERT INTO t_terminal (merchant_id, code, name, agent_token, online_status)

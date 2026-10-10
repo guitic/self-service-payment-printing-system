@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
  * 计价核心纯单元测试（不启 Spring，Mock 掉 Mapper 与文件服务）。
  *
  * <p>对应测试策略 TC-PRICE-01 ~ 14。基线规则：A4 黑白 0.20 / 彩色 0.80、
- * 双面折扣 0.90、起印价 1.00；算法类用例将起印价置 0 以便断言纯单价。
+ * 双面折扣 0.90；金额按实际数量与单价直接计算，不设起印价。
  */
 @ExtendWith(MockitoExtension.class)
 class PricingServiceTest {
@@ -49,14 +49,13 @@ class PricingServiceTest {
     }
 
     private void stubRule(String paperSize, String colorPrice, String monoPrice,
-                          String duplexDiscount, String minCharge) {
+                          String duplexDiscount) {
         PriceRule r = new PriceRule();
         r.setId(1L);
         r.setPaperSize(paperSize);
         r.setColorPrice(new BigDecimal(colorPrice));
         r.setMonoPrice(new BigDecimal(monoPrice));
         r.setDuplexDiscount(new BigDecimal(duplexDiscount));
-        r.setMinCharge(new BigDecimal(minCharge));
         when(ruleMapper.selectOne(any())).thenReturn(r);
     }
 
@@ -69,7 +68,7 @@ class PricingServiceTest {
     @DisplayName("TC-PRICE-01 黑白单面 A4：5 页 × 1 份 = 1.00")
     void monoSimplexA4() {
         stubFile(5);
-        stubRule("A4", "0.80", "0.20", "0.90", "0.00");
+        stubRule("A4", "0.80", "0.20", "0.90");
         var r = quote(1, "MONO", "SIMPLEX", "A4", null);
         assertThat(r.billablePages()).isEqualTo(5);
         assertThat(r.unitPrice()).isEqualByComparingTo("0.20");
@@ -81,7 +80,7 @@ class PricingServiceTest {
     @DisplayName("TC-PRICE-02 彩色单面 A4：5 页 × 1 份 = 4.00")
     void colorSimplexA4() {
         stubFile(5);
-        stubRule("A4", "0.80", "0.20", "0.90", "0.00");
+        stubRule("A4", "0.80", "0.20", "0.90");
         var r = quote(1, "COLOR", "SIMPLEX", "A4", null);
         assertThat(r.unitPrice()).isEqualByComparingTo("0.80");
         assertThat(r.amount()).isEqualByComparingTo("4.00");
@@ -91,7 +90,7 @@ class PricingServiceTest {
     @DisplayName("TC-PRICE-03 黑白双面 A4：5 页 × 0.20 × 0.9 = 0.90")
     void monoDuplexDiscount() {
         stubFile(5);
-        stubRule("A4", "0.80", "0.20", "0.90", "0.00");
+        stubRule("A4", "0.80", "0.20", "0.90");
         var r = quote(1, "MONO", "DUPLEX", "A4", null);
         assertThat(r.duplexDiscount()).isEqualByComparingTo("0.90");
         assertThat(r.amount()).isEqualByComparingTo("0.90");
@@ -101,7 +100,7 @@ class PricingServiceTest {
     @DisplayName("TC-PRICE-04 多份：3 页 × 4 份 黑白 = 2.40")
     void copiesMultiply() {
         stubFile(3);
-        stubRule("A4", "0.80", "0.20", "0.90", "0.00");
+        stubRule("A4", "0.80", "0.20", "0.90");
         var r = quote(4, "MONO", "SIMPLEX", "A4", null);
         assertThat(r.amount()).isEqualByComparingTo("2.40");
     }
@@ -110,37 +109,37 @@ class PricingServiceTest {
     @DisplayName("TC-PRICE-05 A3 黑白：2 页 × 0.40 = 0.80")
     void a3Mono() {
         stubFile(2);
-        stubRule("A3", "1.60", "0.40", "0.90", "0.00");
+        stubRule("A3", "1.60", "0.40", "0.90");
         var r = quote(1, "MONO", "SIMPLEX", "A3", null);
         assertThat(r.unitPrice()).isEqualByComparingTo("0.40");
         assertThat(r.amount()).isEqualByComparingTo("0.80");
     }
 
     @Test
-    @DisplayName("TC-PRICE-06 起印价生效：1 页 0.20 < 起印价 1.00 -> 1.00")
-    void minChargeApplied() {
+    @DisplayName("TC-PRICE-06 单页小额不托底：1 页黑白 = 0.20（无起印价）")
+    void singlePageNoFloor() {
         stubFile(1);
-        stubRule("A4", "0.80", "0.20", "0.90", "1.00");
+        stubRule("A4", "0.80", "0.20", "0.90");
         var r = quote(1, "MONO", "SIMPLEX", "A4", null);
-        assertThat(r.amount()).isEqualByComparingTo("1.00");
+        assertThat(r.amount()).isEqualByComparingTo("0.20");
     }
 
     @Test
-    @DisplayName("TC-PRICE-07 边界 0 页：按起印价 1.00（锁定行为）")
-    void zeroPagesUsesMinCharge() {
+    @DisplayName("TC-PRICE-07 边界 0 页：金额 = 0.00（无起印价托底）")
+    void zeroPagesZeroAmount() {
         stubFile(0);
-        stubRule("A4", "0.80", "0.20", "0.90", "1.00");
+        stubRule("A4", "0.80", "0.20", "0.90");
         var r = quote(1, "MONO", "SIMPLEX", "A4", null);
         assertThat(r.pageCount()).isZero();
         assertThat(r.billablePages()).isZero();
-        assertThat(r.amount()).isEqualByComparingTo("1.00");
+        assertThat(r.amount()).isEqualByComparingTo("0.00");
     }
 
     @Test
     @DisplayName("TC-PRICE-08 页码范围：10 页文件选 3~5 页 -> 计费 3 页")
     void pageRange() {
         stubFile(10);
-        stubRule("A4", "0.80", "0.20", "0.90", "0.00");
+        stubRule("A4", "0.80", "0.20", "0.90");
         var r = quote(1, "MONO", "SIMPLEX", "A4", new PricingService.PageRange(3, 5));
         assertThat(r.billablePages()).isEqualTo(3);
         assertThat(r.amount()).isEqualByComparingTo("0.60");
@@ -150,7 +149,7 @@ class PricingServiceTest {
     @DisplayName("TC-PRICE-09 页码越界：8~15 超出 10 页 -> 3002")
     void pageRangeExceed() {
         stubFile(10);
-        stubRule("A4", "0.80", "0.20", "0.90", "0.00");
+        stubRule("A4", "0.80", "0.20", "0.90");
         BizException ex = catchThrowableOfType(
                 () -> quote(1, "MONO", "SIMPLEX", "A4", new PricingService.PageRange(8, 15)),
                 BizException.class);
@@ -162,7 +161,7 @@ class PricingServiceTest {
     @DisplayName("TC-PRICE-10 起止倒置：5~3 -> 参数校验失败 400")
     void pageRangeInverted() {
         stubFile(10);
-        stubRule("A4", "0.80", "0.20", "0.90", "0.00");
+        stubRule("A4", "0.80", "0.20", "0.90");
         BizException ex = catchThrowableOfType(
                 () -> quote(1, "MONO", "SIMPLEX", "A4", new PricingService.PageRange(5, 3)),
                 BizException.class);
@@ -174,7 +173,7 @@ class PricingServiceTest {
     @DisplayName("TC-PRICE-11 双面奇数页：5 页双面仍按 5 页计费 × 0.9")
     void duplexOddPages() {
         stubFile(5);
-        stubRule("A4", "0.80", "0.20", "0.90", "0.00");
+        stubRule("A4", "0.80", "0.20", "0.90");
         var r = quote(1, "MONO", "DUPLEX", "A4", null);
         assertThat(r.billablePages()).isEqualTo(5);
         assertThat(r.amount()).isEqualByComparingTo("0.90");
@@ -195,7 +194,7 @@ class PricingServiceTest {
     @DisplayName("TC-PRICE-14 金额精度：0.20 × 3 份 × 0.9 = 0.54（BigDecimal 两位无误差）")
     void amountPrecision() {
         stubFile(1);
-        stubRule("A4", "0.80", "0.20", "0.90", "0.00");
+        stubRule("A4", "0.80", "0.20", "0.90");
         var r = quote(3, "MONO", "DUPLEX", "A4", null);
         assertThat(r.amount().toPlainString()).isEqualTo("0.54");
         assertThat(r.amount().scale()).isEqualTo(2);

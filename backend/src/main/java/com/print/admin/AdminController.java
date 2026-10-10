@@ -41,7 +41,7 @@ public class AdminController {
     private final TerminalService terminalService;
 
     public record RuleReq(String name, String paperSize, BigDecimal colorPrice, BigDecimal monoPrice,
-                          BigDecimal duplexDiscount, BigDecimal minCharge, Integer status) {
+                          BigDecimal duplexDiscount, Integer status) {
     }
 
     public record TerminalReq(String code, String name, String agentToken) {
@@ -64,7 +64,6 @@ public class AdminController {
         r.setColorPrice(req.colorPrice());
         r.setMonoPrice(req.monoPrice());
         r.setDuplexDiscount(req.duplexDiscount() == null ? BigDecimal.ONE : req.duplexDiscount());
-        r.setMinCharge(req.minCharge() == null ? BigDecimal.ZERO : req.minCharge());
         r.setStatus(req.status() == null ? 1 : req.status());
         r.setCreatedAt(now);
         r.setUpdatedAt(now);
@@ -92,9 +91,6 @@ public class AdminController {
         }
         if (req.duplexDiscount() != null) {
             r.setDuplexDiscount(req.duplexDiscount());
-        }
-        if (req.minCharge() != null) {
-            r.setMinCharge(req.minCharge());
         }
         if (req.status() != null) {
             r.setStatus(req.status());

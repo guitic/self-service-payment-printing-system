@@ -32,9 +32,6 @@ public class PriceRule {
     /** 双面折扣，如 0.90 */
     private BigDecimal duplexDiscount;
 
-    /** 起印价 */
-    private BigDecimal minCharge;
-
     /** 1 启用 0 停用 */
     private Integer status;
 

@@ -17,7 +17,8 @@ import java.math.RoundingMode;
 /**
  * 计价服务。
  *
- * <p>公式：{@code amount = max(billablePages × copies × unitPrice × duplexDiscount, minCharge)}
+ * <p>公式：{@code amount = billablePages × copies × unitPrice × duplexDiscount}
+ * （按实际数量与单价直接计算，不设起印价/最低消费）
  * （ADR-003：下单时快照金额与参数，规则后续改动不回填历史订单）。
  */
 @Slf4j
@@ -59,11 +60,6 @@ public class PricingService {
                 .multiply(BigDecimal.valueOf((long) billable * req.copies()))
                 .multiply(discount)
                 .setScale(2, RoundingMode.HALF_UP);
-
-        BigDecimal minCharge = rule.getMinCharge() == null ? BigDecimal.ZERO : rule.getMinCharge();
-        if (amount.compareTo(minCharge) < 0) {
-            amount = minCharge.setScale(2, RoundingMode.HALF_UP);
-        }
 
         return new QuoteResult(totalPages, billable, unitPrice, discount, amount, "CNY", rule.getId());
     }
