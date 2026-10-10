@@ -68,7 +68,7 @@ mysql -h127.0.0.1 -uprint -pprint123 print_db \
 
 # 3.2 校验
 mysql -h127.0.0.1 -uprint -pprint123 print_db -e "
-SELECT paper_size, color_price, mono_price, duplex_discount, min_charge FROM t_price_rule;
+SELECT paper_size, color_price, mono_price, duplex_discount FROM t_price_rule;
 SELECT code, agent_token, online_status FROM t_terminal;"
 # 期望：A4/A3 两条规则；终端 TERM-001（token dev-agent-token，上线前务必更换）
 ```
@@ -246,7 +246,8 @@ node tools/smoke-test.mjs https://staging.example.com
 ✅ 上传 PDF 并解析页数 = 3
 ✅ 试算金额 = 1.20（3页×2份×0.20）
 ✅ 双面折扣金额 = 1.62（3页×3份×0.20×0.9）
-✅ 起印价生效 = 1.00
+✅ 单页小额按实算 = 0.20
+✅ 彩色单页 = 0.80（与黑白区分）
 ✅ 创建订单成功
 ✅ 发起支付返回二维码内容
 ✅ Mock 支付成功 → payStatus=1

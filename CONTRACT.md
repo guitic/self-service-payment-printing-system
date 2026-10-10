@@ -28,6 +28,7 @@
 
 | 枚举 | 值 |
 |------|-----|
+| `role` | `ADMIN` / `USER`（登录时由后端签发，随 `/auth/login` 与 `/auth/me` 下发） |
 | `colorMode` | `COLOR` / `MONO` |
 | `duplexMode` | `SIMPLEX` / `DUPLEX` |
 | `paperSize` | `A4` / `A3` |
@@ -42,8 +43,8 @@
 | 方法 | 路径 | 鉴权 | 请求 | 响应 data |
 |------|------|------|------|-----------|
 | POST | `/auth/sms/send` | 无 | `{phone}` | `{expireSeconds, debugCode?}`（demo 档返回 `debugCode` 便于本地联调） |
-| POST | `/auth/login` | 无 | `{phone, code}` | `{token, tokenType:"Bearer", expiresIn, user:{id,phone,nickname}}` |
-| GET | `/auth/me` | 用户 | — | `{id, phone, nickname}` |
+| POST | `/auth/login` | 无 | `{phone, code}` | `{token, tokenType:"Bearer", expiresIn, user:{id,phone,nickname,role}}` |
+| GET | `/auth/me` | 用户 | — | `{id, phone, nickname, role}` |
 | POST | `/auth/logout` | 用户 | — | `null` |
 
 ### 3.2 文件 File
@@ -67,7 +68,7 @@
   "amount": 2.00, "currency": "CNY", "ruleId": 1 }
 ```
 
-计价公式：`amount = max(billablePages × copies × unitPrice × duplexDiscount, minCharge)`。
+计价公式：`amount = billablePages × copies × unitPrice × duplexDiscount`（按实际数量与单价直接计算，**不设起印价/最低消费**）。
 `billablePages` = 页范围页数（无范围则为 `pageCount`）；`duplexDiscount`：DUPLEX 取规则折扣，SIMPLEX 取 1.00。
 
 ### 3.4 订单 Order
@@ -115,7 +116,7 @@
 | 方法 | 路径 | 请求 | 响应 data |
 |------|------|------|-----------|
 | GET | `/admin/price-rules` | — | 规则列表 |
-| POST | `/admin/price-rules` | `{name,paperSize,colorPrice,monoPrice,duplexDiscount,minCharge}` | 新建规则 |
+| POST | `/admin/price-rules` | `{name,paperSize,colorPrice,monoPrice,duplexDiscount}` | 新建规则 |
 | PUT | `/admin/price-rules/{id}` | 同上 | 更新 |
 | GET | `/admin/orders` | `?page&size` | 分页订单 |
 | GET | `/admin/terminals` | — | 终端列表（含在线状态） |
@@ -123,6 +124,7 @@
 
 > 管理端鉴权：需 `ROLE_ADMIN`。角色来源：手机号白名单 `print.admin.phones`（生产），
 > 或 demo 档的 `print.admin.allow-all=true`（**生产必须为 false**，否则任意登录用户即管理员）。
+> 前端据 `/auth/me` 下发的 `role` 隐藏「管理端」菜单与路由，但**安全边界只在本节的接口鉴权**。
 
 ## 4. 运行档位（Profile）
 
@@ -133,7 +135,7 @@
 
 **demo 档预置数据**：
 - 终端 `TERM-001`，`agentToken = dev-agent-token`
-- 计价规则：A4 黑白 0.20 / A4 彩色 0.80 / A3 黑白 0.40，双面折扣 0.90，起印价 1.00
+- 计价规则：A4 黑白 0.20 / A4 彩色 0.80 / A3 黑白 0.40，双面折扣 0.90（金额按实际数量 × 单价直接计算，无起印价）
 - 验证码有效期 300s，同号 60s 冷却
 
 ## 5. 关键行为约束（幂等 / 一致性）
