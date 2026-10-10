@@ -10,17 +10,21 @@ const router = useRouter()
 const userStore = useUserStore()
 const orderStore = useOrderStore()
 
-const navs = [
+const baseNavs = [
   { path: '/upload', label: '上传文件' },
   { path: '/orders', label: '我的订单' },
-  { path: '/admin', label: '管理端' },
 ]
+
+// 「管理端」入口仅对管理员渲染（后端 /api/v1/admin/** 另有 hasRole 校验，此处只影响可见性）
+const navs = computed(() =>
+  userStore.isAdmin ? [...baseNavs, { path: '/admin', label: '管理端' }] : baseNavs,
+)
 
 // 高亮当前一级菜单（pay/status 归入订单流程）
 const activeNav = computed(() => {
   const p = route.path
   if (p.startsWith('/pay') || p.startsWith('/status') || p.startsWith('/params')) return '/upload'
-  return navs.find((n) => p.startsWith(n.path))?.path || '/upload'
+  return navs.value.find((n) => p.startsWith(n.path))?.path || '/upload'
 })
 
 async function handleLogout() {

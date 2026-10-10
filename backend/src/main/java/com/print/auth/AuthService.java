@@ -11,6 +11,7 @@ import com.print.config.PrintProperties;
 import com.print.config.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -32,7 +33,8 @@ public class AuthService {
     public record SmsSendResult(int expireSeconds, String debugCode) {
     }
 
-    public record UserInfo(Long id, String phone, String nickname) {
+    /** 用户信息；{@code role} 为 {@code ADMIN} / {@code USER}，前端据此控制管理端入口与路由。 */
+    public record UserInfo(Long id, String phone, String nickname, String role) {
     }
 
     public record LoginResult(String token, String tokenType, long expiresIn, UserInfo user) {
@@ -82,11 +84,10 @@ public class AuthService {
         userMapper.updateById(user);
 
         // 角色：管理员白名单命中（或 demo 档 allow-all）→ ADMIN
-        String role = (props.getAdmin().isAllowAll() || props.getAdmin().getPhones().contains(phone))
-                ? "ADMIN" : "USER";
+        String role = resolveRole(phone);
         String token = jwtUtils.generate(user.getId(), phone, role);
         return new LoginResult(token, "Bearer", jwtUtils.expireSeconds(),
-                new UserInfo(user.getId(), user.getPhone(), user.getNickname()));
+                new UserInfo(user.getId(), user.getPhone(), user.getNickname(), role));
     }
 
     /** 当前登录用户信息。 */
@@ -99,6 +100,34 @@ public class AuthService {
         if (u == null) {
             throw new BizException(ResultCode.UNAUTHORIZED);
         }
-        return new UserInfo(u.getId(), u.getPhone(), u.getNickname());
+        return new UserInfo(u.getId(), u.getPhone(), u.getNickname(), effectiveRole());
+    }
+
+    /**
+     * 按配置判定角色（登录签发 Token 时使用）。
+     *
+     * <p>规则与 {@code JwtAuthFilter.resolveAuthorities} 完全一致：管理员手机号白名单
+     * 或 demo 档 {@code print.admin.allow-all} 命中即 ADMIN。
+     */
+    private String resolveRole(String phone) {
+        boolean admin = props.getAdmin().isAllowAll()
+                || (phone != null && props.getAdmin().getPhones().contains(phone));
+        return admin ? "ADMIN" : "USER";
+    }
+
+    /**
+     * 读取本次请求**实际生效**的角色（查询当前用户时使用）。
+     *
+     * <p>直接取 SecurityContext 中 {@code JwtAuthFilter} 已解析的授权，避免与过滤器判定
+     * 产生分歧（例如运行期调整了白名单或 allow-all，而 Token 仍携带旧角色）。
+     */
+    private String effectiveRole() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) {
+            return "USER";
+        }
+        boolean admin = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        return admin ? "ADMIN" : "USER";
     }
 }

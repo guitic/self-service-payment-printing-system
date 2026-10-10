@@ -12,6 +12,8 @@ export const useUserStore = defineStore('user', () => {
   const user = ref<UserInfo | null>(null)
 
   const isLoggedIn = computed(() => !!token.value)
+  /** 是否管理员（由后端下发的 role 决定；前端仅用于控制入口与路由，不作为安全边界） */
+  const isAdmin = computed(() => user.value?.role === 'ADMIN')
 
   async function login(phone: string, code: string): Promise<LoginResult> {
     const res = await apiLogin(phone, code)
@@ -31,6 +33,17 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  /**
+   * 确保用户信息已加载（路由守卫用）。
+   *
+   * <p>硬刷新时 store 为空但 token 仍在，必须先拉一次 `/auth/me` 才能判定角色，
+   * 否则会把管理员误判为普通用户。
+   */
+  async function ensureUser(): Promise<void> {
+    if (user.value || !token.value) return
+    await fetchMe()
+  }
+
   async function logout(): Promise<void> {
     try {
       await apiLogout()
@@ -48,5 +61,5 @@ export const useUserStore = defineStore('user', () => {
     clearToken()
   }
 
-  return { token, user, isLoggedIn, login, fetchMe, logout, reset }
+  return { token, user, isLoggedIn, isAdmin, login, fetchMe, ensureUser, logout, reset }
 })

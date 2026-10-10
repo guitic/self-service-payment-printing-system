@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { getToken } from '@/api/request'
+import { useUserStore } from '@/stores/user'
 import AppLayout from '@/layout/AppLayout.vue'
 
 const routes: RouteRecordRaw[] = [
@@ -48,7 +50,7 @@ const routes: RouteRecordRaw[] = [
         path: 'admin',
         name: 'admin',
         component: () => import('@/views/AdminView.vue'),
-        meta: { title: '管理端' },
+        meta: { title: '管理端', requiresAdmin: true },
       },
     ],
   },
@@ -60,8 +62,11 @@ const router = createRouter({
   routes,
 })
 
-// 路由守卫：未登录一律跳登录页
-router.beforeEach((to) => {
+// 路由守卫：
+//  1) 未登录 → 跳登录页（带 redirect）
+//  2) 需管理员的路由 → 校验角色，非管理员提示并送回首页
+// 注意：前端守卫只负责体验，真正的权限边界在后端 /api/v1/admin/** 的 hasRole("ADMIN")。
+router.beforeEach(async (to) => {
   const logged = !!getToken()
   if (to.meta.public) {
     // 已登录访问登录页 -> 回到首页
@@ -70,6 +75,15 @@ router.beforeEach((to) => {
   }
   if (!logged) {
     return { path: '/login', query: { redirect: to.fullPath } }
+  }
+  if (to.meta.requiresAdmin) {
+    // 硬刷新时 store 可能为空，先确保用户信息已加载再判定角色
+    const userStore = useUserStore()
+    await userStore.ensureUser()
+    if (!userStore.isAdmin) {
+      ElMessage.warning('无权访问管理端')
+      return { path: '/upload' }
+    }
   }
   return true
 })

@@ -1,9 +1,13 @@
 // 与 CONTRACT.md 严格对齐的类型定义（枚举 / 请求体 / 响应体）
 
+/** 角色：ADMIN 管理员 / USER 普通用户（由后端签发，前端仅用于控制入口与路由） */
+export type UserRole = 'ADMIN' | 'USER'
+
 export interface UserInfo {
   id: number
   phone: string
   nickname: string
+  role: UserRole
 }
 
 /** 枚举 */
@@ -120,7 +124,6 @@ export interface PriceRule {
   colorPrice: number
   monoPrice: number
   duplexDiscount: number
-  minCharge: number
 }
 
 export interface Terminal {
